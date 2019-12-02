@@ -2,9 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(aloam_velodyne)
 
 set(CMAKE_CXX_STANDARD 11)
-
-set(CMAKE_BUILD_TYPE "Release")
-set(CMAKE_CXX_FLAGS_RELEASE "-Wall -g")
+set(CMAKE_CXX_FLAGS "-Ofast -Wall -g")
 
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
@@ -39,13 +37,13 @@ catkin_package(
 
 
 add_executable(ascanRegistration src/scanRegistration.cpp)
-target_link_libraries(ascanRegistration -Wl,--as-needed ${catkin_LIBRARIES} ${PCL_LIBRARIES} -Wl,--no-as-needed)
+target_link_libraries(ascanRegistration ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 
 add_executable(alaserOdometry src/laserOdometry.cpp)
-target_link_libraries(alaserOdometry -Wl,--as-needed ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${CERES_LIBRARIES} -Wl,--no-as-needed)
+target_link_libraries(alaserOdometry ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${CERES_LIBRARIES})
 
 add_executable(alaserMapping src/laserMapping.cpp)
-target_link_libraries(alaserMapping -Wl,--as-needed ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${CERES_LIBRARIES} -Wl,--no-as-needed)
+target_link_libraries(alaserMapping ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${CERES_LIBRARIES})
 
 add_executable(kittiHelper src/kittiHelper.cpp)
-target_link_libraries(kittiHelper -Wl,--as-needed ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBS} -Wl,--no-as-needed)
+target_link_libraries(kittiHelper ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBS})
