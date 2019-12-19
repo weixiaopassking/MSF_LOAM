@@ -62,8 +62,8 @@ namespace {
 
 int frameCount = 0;
 
-HybridGrid hybrid_grid_map_corner(30.0);
-HybridGrid hybrid_grid_map_surf(30.0);
+HybridGrid hybrid_grid_map_corner(10.0);
+HybridGrid hybrid_grid_map_surf(10.0);
 
 // input: from odom
 PointCloudPtr laserCloudCornerLast(new PointCloud);
@@ -231,6 +231,7 @@ void process() {
           laserCloudCornerLast, pose_map_scan2world);
       laserCloudSurfFromMap = hybrid_grid_map_surf.GetSurroundedCloud(
           laserCloudSurfLast, pose_map_scan2world);
+      LOG_STEP_TIME("MAP", "Collect surround cloud", t_shift.toc());
 
       downSizeFilterCorner.setInputCloud(laserCloudCornerLast);
       downSizeFilterCorner.filter(*laserCloudCornerLast);
@@ -238,7 +239,6 @@ void process() {
       downSizeFilterSurf.setInputCloud(laserCloudSurfLast);
       downSizeFilterSurf.filter(*laserCloudSurfLast);
 
-      LOG_STEP_TIME("MAP", "prepare", t_shift.toc());
       LOG(INFO) << "[MAP]"
                 << " corner=" << laserCloudCornerFromMap->size()
                 << ", surf=" << laserCloudSurfFromMap->size();

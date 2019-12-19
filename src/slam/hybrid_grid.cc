@@ -16,6 +16,8 @@
 
 #include <Eigen/Core>
 #include <array>
+#include <boost/container/set.hpp>
+#include <boost/unordered_set.hpp>
 #include <cmath>
 #include <limits>
 #include <memory>
@@ -464,8 +466,7 @@ class HybridGridImpl : public HybridGridBase<PointCloudPtr> {
 
   PointCloudPtr GetSurroundedCloud(const PointCloudPtr& scan,
                                    const Rigid3d& pose) {
-    std::set<PointCloudPtr> inserted_grids;
-
+    boost::unordered_set<PointCloudPtr> inserted_grids;
     for (auto& point : *scan) {
       if (point.getVector3fMap().norm() > kDist) continue;
       auto new_point = pose.cast<float>() * point.getVector3fMap();
@@ -476,18 +477,15 @@ class HybridGridImpl : public HybridGridBase<PointCloudPtr> {
         inserted_grids.insert(cloud_in_grid);
       }
     }
-
     PointCloudPtr cloud_surround(new PointCloud);
     for (auto& cloud_in_grid : inserted_grids) {
       *cloud_surround += *cloud_in_grid;
     }
-
     return cloud_surround;
   }
 
   void InsertScan(const PointCloudPtr& scan, pcl::Filter<PointType>& filter) {
     if (scan->empty()) return;
-
     // 添加scan到点云
     for (auto& point : *scan) {
       PointCloudPtr& cloud_in_grid =
@@ -495,14 +493,12 @@ class HybridGridImpl : public HybridGridBase<PointCloudPtr> {
       if (!cloud_in_grid) cloud_in_grid.reset(new PointCloud);
       cloud_in_grid->push_back(point);
     }
-
     // 降采样
-    std::set<PointCloudPtr> inserted_grids;
+    boost::unordered_set<PointCloudPtr> inserted_grids;
     for (auto& point : *scan) {
       auto cloud_in_grid = this->value(GetCellIndex(point.getArray3fMap()));
       if (cloud_in_grid) inserted_grids.insert(cloud_in_grid);
     }
-
     for (auto& cloud_in_grid : inserted_grids) {
       filter.setInputCloud(cloud_in_grid);
       filter.filter(*cloud_in_grid);
