@@ -462,29 +462,31 @@ class HybridGridImpl : public HybridGridBase<PointCloudPtr> {
   explicit HybridGridImpl(const float resolution)
       : HybridGridBase<PointCloudPtr>(resolution) {}
 
-  PointCloudPtr GetSurroundedCloud(const Eigen::Vector3f pose) {
-    PointCloudPtr cloud_surround(new PointCloud);
+  PointCloudPtr GetSurroundedCloud(const PointCloudPtr& scan,
+                                   const Rigid3d& pose) {
+    std::set<PointCloudPtr> inserted_grids;
 
-    auto pi_min = GetCellIndex(pose - kDist * Eigen::Vector3f::Ones());
-    auto pi_max = GetCellIndex(pose + kDist * Eigen::Vector3f::Ones());
-
-    // TODO
-    for (int i = pi_min.x(); i <= pi_max.x(); ++i) {
-      for (int j = pi_min.y(); j <= pi_max.y(); ++j) {
-        for (int k = pi_min.z(); k <= pi_max.z(); ++k) {
-          auto cloud_in_grid = this->value({i, j, k});
-          if (cloud_in_grid) {
-            *cloud_surround += *cloud_in_grid;
-          }
-        }
+    for (auto& point : *scan) {
+      if (point.getVector3fMap().norm() > kDist) continue;
+      auto new_point = pose.cast<float>() * point.getVector3fMap();
+      // TODO
+      // Need to get more points!
+      auto cloud_in_grid = this->value(GetCellIndex(new_point));
+      if (cloud_in_grid) {
+        inserted_grids.insert(cloud_in_grid);
       }
+    }
+
+    PointCloudPtr cloud_surround(new PointCloud);
+    for (auto& cloud_in_grid : inserted_grids) {
+      *cloud_surround += *cloud_in_grid;
     }
 
     return cloud_surround;
   }
 
   void InsertScan(const PointCloudPtr& scan, pcl::Filter<PointType>& filter) {
-    if (scan->size() == 0) return;
+    if (scan->empty()) return;
 
     // 添加scan到点云
     for (auto& point : *scan) {
@@ -495,28 +497,15 @@ class HybridGridImpl : public HybridGridBase<PointCloudPtr> {
     }
 
     // 降采样
-    auto p_min = scan->at(0).getArray3fMap();
-    auto p_max = scan->at(1).getArray3fMap();
+    std::set<PointCloudPtr> inserted_grids;
     for (auto& point : *scan) {
-      p_min = p_min.min(point.getArray3fMap());
-      p_max = p_max.max(point.getArray3fMap());
+      auto cloud_in_grid = this->value(GetCellIndex(point.getArray3fMap()));
+      if (cloud_in_grid) inserted_grids.insert(cloud_in_grid);
     }
 
-    auto pi_min = GetCellIndex(p_min);
-    auto pi_max = GetCellIndex(p_max);
-
-    // TODO
-    for (int i = pi_min.x(); i <= pi_max.x(); ++i) {
-      for (int j = pi_min.y(); j <= pi_max.y(); ++j) {
-        for (int k = pi_min.z(); k <= pi_max.z(); ++k) {
-          auto cloud_in_grid = this->value({i, j, k});
-          if (cloud_in_grid) {
-            filter.setInputCloud(cloud_in_grid);
-            // TODO
-            filter.filter(*cloud_in_grid);
-          }
-        }
-      }
+    for (auto& cloud_in_grid : inserted_grids) {
+      filter.setInputCloud(cloud_in_grid);
+      filter.filter(*cloud_in_grid);
     }
   }
 
@@ -529,8 +518,9 @@ HybridGrid::HybridGrid(const float& resolution)
 
 HybridGrid::~HybridGrid() { delete hybrid_grid_; }
 
-PointCloudPtr HybridGrid::GetSurroundedCloud(const Eigen::Vector3f& pose) {
-  return hybrid_grid_->GetSurroundedCloud(pose);
+PointCloudPtr HybridGrid::GetSurroundedCloud(const PointCloudPtr& scan,
+                                             const Rigid3d& pose) {
+  return hybrid_grid_->GetSurroundedCloud(scan, pose);
 }
 
 void HybridGrid::InsertScan(const PointCloudPtr& scan,
