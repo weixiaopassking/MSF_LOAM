@@ -52,6 +52,7 @@
 #include <vector>
 
 #include "common/common.h"
+#include "common/hybrid_grid.h"
 #include "common/rigid_transform.h"
 #include "common/tic_toc.h"
 #include "common/type_conversion.h"
@@ -60,6 +61,8 @@
 namespace {
 
 int frameCount = 0;
+
+HybridGrid hybrid_grid_map(50.0);
 
 // 格网原点的x轴网格偏移数
 int laserCloudCenWidth = 10;
@@ -758,15 +761,11 @@ void process() {
       for (int i = 0; i < laserCloudValidNum; i++) {
         int ind = laserCloudValidInd[i];
 
-        PointCloudPtr tmpCorner(new PointCloud);
         downSizeFilterCorner.setInputCloud(laserCloudCornerArray[ind]);
-        downSizeFilterCorner.filter(*tmpCorner);
-        laserCloudCornerArray[ind] = tmpCorner;
+        downSizeFilterCorner.filter(*laserCloudCornerArray[ind]);
 
-        PointCloudPtr tmpSurf(new PointCloud);
         downSizeFilterSurf.setInputCloud(laserCloudSurfArray[ind]);
-        downSizeFilterSurf.filter(*tmpSurf);
-        laserCloudSurfArray[ind] = tmpSurf;
+        downSizeFilterSurf.filter(*laserCloudSurfArray[ind]);
       }
       LOG_STEP_TIME("MAP", "filter time", t_filter.toc());
 
