@@ -496,10 +496,10 @@ class HybridGridImpl : public HybridGridBase<PointCloudPtr> {
     if (scan->empty()) return;
     // 添加scan到点云
     for (auto& point : *scan) {
-      PointCloudPtr& cloud_in_grid =
-          *this->mutable_value(GetCellIndex(point.getArray3fMap()));
-      if (!cloud_in_grid) cloud_in_grid.reset(new PointCloud);
-      cloud_in_grid->push_back(point);
+      PointCloudPtr* cloud_in_grid =
+          this->mutable_value(GetCellIndex(point.getArray3fMap()));
+      if (!cloud_in_grid->get()) cloud_in_grid->reset(new PointCloud);
+      (*cloud_in_grid)->push_back(point);
     }
     // 降采样
     Set grid_set;
@@ -521,7 +521,7 @@ class HybridGridImpl : public HybridGridBase<PointCloudPtr> {
   }
 
  private:
-  const double kDist = 100.0;
+  const double kDist = 60.0;
   const double kDistFlann = 1.1;
 };
 

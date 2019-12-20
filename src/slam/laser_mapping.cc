@@ -62,8 +62,8 @@ namespace {
 
 int frameCount = 0;
 
-HybridGrid hybrid_grid_map_corner(10.0);
-HybridGrid hybrid_grid_map_surf(10.0);
+HybridGrid hybrid_grid_map_corner(5.0);
+HybridGrid hybrid_grid_map_surf(5.0);
 
 // input: from odom
 PointCloudPtr laserCloudCornerLast(new PointCloud);
