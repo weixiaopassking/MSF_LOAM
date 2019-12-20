@@ -460,25 +460,33 @@ class HybridGridBase : public GridBase<ValueType> {
 // can only be tens of meters from the origin.
 // The hard limit of cell indexes is +/- 8192 around the origin.
 class HybridGridImpl : public HybridGridBase<PointCloudPtr> {
+ private:
+  using Set = boost::unordered_set<PointCloudPtr>;
+
  public:
   explicit HybridGridImpl(const float resolution)
       : HybridGridBase<PointCloudPtr>(resolution) {}
 
   PointCloudPtr GetSurroundedCloud(const PointCloudPtr& scan,
                                    const Rigid3d& pose) {
-    boost::unordered_set<PointCloudPtr> inserted_grids;
+    Set grid_set;
     for (auto& point : *scan) {
       if (point.getVector3fMap().norm() > kDist) continue;
       auto new_point = pose.cast<float>() * point.getVector3fMap();
       // TODO
       // Need to get more points!
-      auto cloud_in_grid = this->value(GetCellIndex(new_point));
-      if (cloud_in_grid) {
-        inserted_grids.insert(cloud_in_grid);
+      auto grid_id = this->GetCellIndex(new_point);
+      for (int i = -1; i <= 1; ++i) {
+        for (int j = -1; j <= 1; ++j) {
+          for (int k = -1; k <= 1; ++k) {
+            TryInsertGrid(grid_set, grid_id + Eigen::Array3i(i, j, k));
+          }
+        }
       }
     }
     PointCloudPtr cloud_surround(new PointCloud);
-    for (auto& cloud_in_grid : inserted_grids) {
+    cloud_surround->reserve(200 * 1000);
+    for (auto& cloud_in_grid : grid_set) {
       *cloud_surround += *cloud_in_grid;
     }
     return cloud_surround;
@@ -494,19 +502,27 @@ class HybridGridImpl : public HybridGridBase<PointCloudPtr> {
       cloud_in_grid->push_back(point);
     }
     // 降采样
-    boost::unordered_set<PointCloudPtr> inserted_grids;
+    Set grid_set;
     for (auto& point : *scan) {
-      auto cloud_in_grid = this->value(GetCellIndex(point.getArray3fMap()));
-      if (cloud_in_grid) inserted_grids.insert(cloud_in_grid);
+      TryInsertGrid(grid_set, this->GetCellIndex(point.getArray3fMap()));
     }
-    for (auto& cloud_in_grid : inserted_grids) {
+    for (auto& cloud_in_grid : grid_set) {
       filter.setInputCloud(cloud_in_grid);
       filter.filter(*cloud_in_grid);
     }
   }
 
  private:
+  void TryInsertGrid(Set& grid_set, const Eigen::Array3i& grid_id) {
+    auto cloud_in_grid = this->value(grid_id);
+    if (cloud_in_grid) {
+      grid_set.insert(cloud_in_grid);
+    }
+  }
+
+ private:
   const double kDist = 100.0;
+  const double kDistFlann = 1.1;
 };
 
 HybridGrid::HybridGrid(const float& resolution)
