@@ -25,37 +25,41 @@ void GpsFusion::AddLocalPose(const Time& time, const Rigid3d& pose) {
 }
 
 void GpsFusion::Optimize() {
+  if (fixed_points_.size() < 2) {
+    LOG(WARNING) << "Number of fixed points less than 2!";
+    return;
+  }
   CHECK_GT(local_poses_.size(), 2);
-  CHECK_GT(fixed_points_.size(), 2);
   CHECK_LE(local_poses_.front().timestamp, fixed_points_.front().timestamp);
   CHECK_LE(fixed_points_.back().timestamp, local_poses_.back().timestamp);
 
   ceres::Problem problem;
   ceres::Solver::Options options;
   options.linear_solver_type = ceres::SPARSE_NORMAL_CHOLESKY;
-  options.minimizer_progress_to_stdout = true;
-  options.max_num_iterations = 10;
+  options.minimizer_progress_to_stdout = false;
+  options.num_threads = 4;
+  options.max_num_iterations = 6;
   ceres::Solver::Summary summary;
   ceres::LossFunction* loss_function = new ceres::HuberLoss(1.0);
   ceres::LocalParameterization* local_parameterization =
       new ceres::EigenQuaternionParameterization();
 
-  for (auto& local_pose : local_poses_) {
-    problem.AddParameterBlock(local_pose.pose.translation().data(), 3);
-    problem.AddParameterBlock(local_pose.pose.rotation().coeffs().data(), 4,
+  for (auto& lp : local_poses_) {
+    problem.AddParameterBlock(lp.pose.translation().data(), 3);
+    problem.AddParameterBlock(lp.pose.rotation().coeffs().data(), 4,
                               local_parameterization);
   }
 
-  for (auto& fixed_point : fixed_points_) {
-    auto local_pose_j = std::upper_bound(
-        local_poses_.begin(), local_poses_.end(), fixed_point, CompareTimeLT);
+  for (auto& fp : fixed_points_) {
+    auto local_pose_j = std::upper_bound(local_poses_.begin(),
+                                         local_poses_.end(), fp, CompareTimeLT);
     auto local_pose_i = std::prev(local_pose_j);
-    if (fixed_point.timestamp == local_poses_.end()->timestamp)
+    if (fp.timestamp == local_poses_.end()->timestamp)
       local_pose_j = local_pose_i;
-    double t = (fixed_point.timestamp - local_pose_i->timestamp).count() * 1.0 /
+    double t = (fp.timestamp - local_pose_i->timestamp).count() * 1.0 /
                (local_pose_j->timestamp - local_pose_i->timestamp).count();
     CHECK(t >= 0 && t <= 1);
-    auto cost_function = GpsFactor::Create(fixed_point.translation, t, 0.01);
+    auto cost_function = GpsFactor::Create(fp.translation, t, 0.01);
     problem.AddResidualBlock(cost_function, loss_function,
                              local_pose_i->pose.translation().data(),
                              local_pose_j->pose.translation().data());
@@ -73,21 +77,22 @@ void GpsFusion::Optimize() {
                              local_pose_j.pose.translation().data());
   }
 
-  for (auto& local_pose : local_poses_) {
-    LOG(INFO) << "local pose before gps: " << local_pose.timestamp << " "
-              << local_pose.pose.translation().transpose();
+  for (auto& lp : local_poses_) {
+    LOG(INFO) << "local pose before gps: " << lp.timestamp << " "
+              << lp.pose.translation().transpose();
   }
 
   ceres::Solve(options, &problem, &summary);
+
+  for (auto& fp : fixed_points_) {
+    LOG(INFO) << "gps point: " << fp.timestamp << " "
+              << fp.translation.transpose();
+  }
+
+  for (auto& lp : local_poses_) {
+    LOG(INFO) << "local pose after gps: " << lp.timestamp << " "
+              << lp.pose.translation().transpose();
+  }
+
   LOG(INFO) << summary.FullReport();
-
-  for (auto& fixed_point : fixed_points_) {
-    LOG(INFO) << "gps point: " << fixed_point.timestamp << " "
-              << fixed_point.translation.transpose();
-  }
-
-  for (auto& local_pose : local_poses_) {
-    LOG(INFO) << "local pose after gps: " << local_pose.timestamp << " "
-              << local_pose.pose.translation().transpose();
-  }
 }
