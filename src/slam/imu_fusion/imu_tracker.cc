@@ -1,8 +1,3 @@
-//
-// Created by whu on 1/14/20.
-//
-
-#include "imu_tracker.h"
 /*
  * Copyright 2016 The Cartographer Authors
  *

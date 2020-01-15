@@ -102,3 +102,18 @@ void LaserOdometry::AddLaserScan(TimestampedPointCloud scan_curr) {
   LOG_IF_EVERY_N(WARNING, t_whole.toc() > 100, 10)
       << "Odometry process over 100ms!!";
 }
+
+void LaserOdometry::AddImu(const ImuData &imu_data) {
+  // todo
+  // estimate rotation_delta
+  if (!imu_tracker_) {
+    LOG(INFO) << "Initializing imu tracker ...";
+    imu_tracker_.reset(new ImuTracker(10, imu_data.time));
+    imu_tracker_->AddImuLinearAccelerationObservation(
+        imu_data.linear_acceleration);
+    imu_tracker_->AddImuAngularVelocityObservation(imu_data.angular_velocity);
+    imu_tracker_->Advance(imu_data.time);
+  }
+  LOG(FATAL) << "AddIMU not implemented yet.";
+  laser_mapper_handler_->AddImu(imu_data);
+}

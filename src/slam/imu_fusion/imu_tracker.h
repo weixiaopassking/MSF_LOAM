@@ -20,6 +20,12 @@
 #include "Eigen/Geometry"
 #include "common/time_def.h"
 
+struct ImuData {
+  Time time;
+  Eigen::Vector3d linear_acceleration;
+  Eigen::Vector3d angular_velocity;
+};
+
 // Keeps track of the orientation using angular velocities and linear
 // accelerations from an IMU. Because averaged linear acceleration (assuming
 // slow movement) is a direct measurement of gravity, roll/pitch does not drift,
