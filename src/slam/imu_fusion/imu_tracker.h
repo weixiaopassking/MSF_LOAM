@@ -38,10 +38,7 @@ class ImuTracker {
   void Advance(Time time);
 
   // Updates from an IMU reading (in the IMU frame).
-  void AddImuLinearAccelerationObservation(
-      const Eigen::Vector3d& imu_linear_acceleration);
-  void AddImuAngularVelocityObservation(
-      const Eigen::Vector3d& imu_angular_velocity);
+  void AddImuObservation(const ImuData& imu_data);
 
   // Query the current time.
   Time time() const { return time_; }

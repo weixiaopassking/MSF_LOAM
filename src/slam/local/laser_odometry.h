@@ -17,9 +17,12 @@ class LaserOdometry {
 
   void AddImu(const ImuData &imu_data);
 
+  std::unique_ptr<Quaternion<double>> AdvanceImuTracker(const Time &time);
+
  private:
   std::shared_ptr<LaserMapping> laser_mapper_handler_;
   std::unique_ptr<ImuTracker> imu_tracker_;
+  std::queue<ImuData> imu_queue_;
 
   TimestampedPointCloud scan_last_;
 

@@ -65,12 +65,25 @@ LaserOdometry::LaserOdometry(bool is_offline_mode)
 LaserOdometry::~LaserOdometry() { LOG(INFO) << "LaserOdometry finished."; }
 
 void LaserOdometry::AddLaserScan(TimestampedPointCloud scan_curr) {
+  auto rotation = AdvanceImuTracker(scan_curr.timestamp);
+  if (rotation) {
+    scan_curr.imu_rotation = *rotation;
+  }
+
   TicToc t_whole;
   // initializing
   if (scan_last_.cloud_full_res->empty()) {
     LOG(INFO) << "[ODO] Initializing ...";
   } else {
+    // todo
+    pose_curr2last_.rotation() =
+        scan_last_.imu_rotation * scan_curr.imu_rotation.inverse();
     OdometryScanMatcher::Match(scan_last_, scan_curr, &pose_curr2last_);
+
+    LOG(ERROR) << (scan_last_.imu_rotation * scan_curr.imu_rotation.inverse())
+                      .coeffs()
+                      .head<3>()
+                      .transpose();
 
     LOG(INFO) << "[ODO] odometry_delta: " << pose_curr2last_;
     LOG(INFO) << "[ODO] odometry_curr: " << pose_scan2world_;
@@ -109,11 +122,24 @@ void LaserOdometry::AddImu(const ImuData &imu_data) {
   if (!imu_tracker_) {
     LOG(INFO) << "Initializing imu tracker ...";
     imu_tracker_.reset(new ImuTracker(10, imu_data.time));
-    imu_tracker_->AddImuLinearAccelerationObservation(
-        imu_data.linear_acceleration);
-    imu_tracker_->AddImuAngularVelocityObservation(imu_data.angular_velocity);
+    imu_tracker_->AddImuObservation(imu_data);
     imu_tracker_->Advance(imu_data.time);
   }
-  LOG(FATAL) << "AddIMU not implemented yet.";
+  CHECK(imu_queue_.empty() || imu_data.time > imu_queue_.back().time);
+  imu_queue_.push(imu_data);
   laser_mapper_handler_->AddImu(imu_data);
+}
+
+std::unique_ptr<Quaternion<double>> LaserOdometry::AdvanceImuTracker(
+    const Time &time) {
+  if (!imu_tracker_ || time < imu_tracker_->time()) return nullptr;
+  while (!imu_queue_.empty() && imu_queue_.front().time <= time) {
+    imu_tracker_->AddImuObservation(imu_queue_.front());
+    imu_tracker_->Advance(imu_queue_.front().time);
+    imu_queue_.pop();
+  }
+  imu_tracker_->Advance(time);
+  std::unique_ptr<Quaternion<double>> r(new Quaternion<double>);
+  *r = imu_tracker_->orientation();
+  return r;
 }
