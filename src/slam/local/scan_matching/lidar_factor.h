@@ -41,9 +41,7 @@ struct LidarEdgeFactor {
     Eigen::Matrix<T, 3, 1> nu = (lp - lpa).cross(lp - lpb);
     Eigen::Matrix<T, 3, 1> de = lpa - lpb;
 
-    residual[0] = nu.x() / de.norm();
-    residual[1] = nu.y() / de.norm();
-    residual[2] = nu.z() / de.norm();
+    residual[0] = nu.norm() / de.norm();
 
     return true;
   }
@@ -52,7 +50,7 @@ struct LidarEdgeFactor {
                                      const Eigen::Vector3d &last_point_a,
                                      const Eigen::Vector3d &last_point_b,
                                      const double s) {
-    return (new ceres::AutoDiffCostFunction<LidarEdgeFactor, 3, 4, 3>(
+    return (new ceres::AutoDiffCostFunction<LidarEdgeFactor, 1, 4, 3>(
         new LidarEdgeFactor(curr_point, last_point_a, last_point_b, s)));
   }
 
