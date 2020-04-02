@@ -62,6 +62,8 @@ DEFINE_string(bag_filename, "", "Bag file to read in offline mode.");
 
 namespace {
 
+const int kDefaultScanNum = 16;
+
 enum PointLabel { P_UNKNOWN = 0, P_LESS_SHARP = 1, P_SHARP = 2, P_FLAT = -1 };
 
 const double kScanPeriod = 0.1;  // 扫描周期
@@ -410,8 +412,8 @@ int main(int argc, char **argv) {
   ros::init(argc, argv, "nsf_loam_node");
   ros::NodeHandle nh;
 
-  LOG_IF(WARNING, !nh.param<int>("scan_line", g_scan_num, 64))
-      << "Use default scan_line: 64";
+  LOG_IF(WARNING, !nh.param<int>("scan_line", g_scan_num, kDefaultScanNum))
+      << "Use default scan_line: " << kDefaultScanNum;
   LOG_IF(WARNING, !nh.param<double>("minimum_range", g_min_range, 0.3))
       << "Use default minimum_range: 0.3";
   CHECK(g_scan_num == 16 || g_scan_num == 32 || g_scan_num == 64)

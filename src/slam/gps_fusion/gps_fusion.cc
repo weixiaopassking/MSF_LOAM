@@ -25,6 +25,11 @@ void GpsFusion::AddLocalPose(const Time& time, const Rigid3d& pose) {
 }
 
 void GpsFusion::Optimize() {
+  for (auto& lp : local_poses_) {
+    LOG(INFO) << "local pose before gps: " << lp.timestamp << " "
+              << lp.pose.translation().transpose();
+  }
+
   if (fixed_points_.size() < 2) {
     LOG(WARNING) << "Number of fixed points less than 2!";
     return;
@@ -75,11 +80,6 @@ void GpsFusion::Optimize() {
                              local_pose_i.pose.translation().data(),
                              local_pose_j.pose.rotation().coeffs().data(),
                              local_pose_j.pose.translation().data());
-  }
-
-  for (auto& lp : local_poses_) {
-    LOG(INFO) << "local pose before gps: " << lp.timestamp << " "
-              << lp.pose.translation().transpose();
   }
 
   ceres::Solve(options, &problem, &summary);

@@ -7,7 +7,7 @@ if (CCACHE_PROGRAM)
 endif ()
 
 set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_FLAGS "-Ofast -Wall -g")
+set(CMAKE_CXX_FLAGS "-O3 -Wall -g")
 
 add_definitions(-D_SIM_GPS)
 
